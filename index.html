@@ -386,9 +386,12 @@ button.auto-on {
 
 .q {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin: 8px 0;
+}
+@media (max-width: 640px) {
+  .q { grid-template-columns: repeat(2, 1fr); }
 }
 .econ-grid {
   display: grid;
@@ -595,7 +598,7 @@ canvas.trend { width: 100%; height: 110px; display: block; }
 
     <nav class="nav-tabs" aria-label="Разделы">
       <button class="tab-btn active" data-tab="sim">Пульт АСУ ТП</button>
-      <button class="tab-btn" data-tab="tasks">Сценарии (7)</button>
+      <button class="tab-btn" data-tab="tasks">Сценарии (9)</button>
       <button class="tab-btn" data-tab="gost">Теория и ГОСТ</button>
       <button class="tab-btn" data-tab="report">Ведомость и Антиплагиат</button>
       <button class="tab-btn" data-tab="b2b">Для вузов и ВИНК</button>
@@ -618,6 +621,8 @@ canvas.trend { width: 100%; height: 110px; display: block; }
         <label style="font-size:12px;color:var(--mut)">Профиль нефти:
           <select id="oilPreset">
             <option value="west_sib">Западная Сибирь (Лёгкая, базовая)</option>
+            <option value="east_sib">Восточная Сибирь (Парафинистая, АСПО+)</option>
+            <option value="orenburg">Оренбургское (Высокосернистая, H₂S+)</option>
             <option value="volga">Волго-Урал / Татарстан (Тяжёлая высоковязкая)</option>
             <option value="arctic">Арктический шельф (Холодная, стойкая эмульсия)</option>
           </select>
@@ -724,7 +729,7 @@ canvas.trend { width: 100%; height: 110px; display: block; }
 
         <div class="card" id="outc">
           <h2><span class="title-left"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg>СИКН: Товарная нефть (ГОСТ Р 51858)</span></h2>
-          <p>Норма 1-й группы: вода ≤ 0,50 %, соли ≤ 100 мг/л, ДНП ≤ 66,7 кПа.</p>
+          <p>Норма 1-й гр. (Вид 1): вода ≤ 0,50 %, соли ≤ 100 мг/л, ДНП ≤ 66,7 кПа, H₂S ≤ 20 ppm.</p>
           <div class="q" id="q"></div>
           <div class="stat"><span>Выход товарной нефти (СИКН)</span><b id="qout"></b></div>
           <div class="stat"><span>Оценка нефти по замерам АГЗУ</span><b id="bm"></b></div>
@@ -812,6 +817,8 @@ canvas.trend { width: 100%; height: 110px; display: block; }
               <button class="sm" data-s="pump:10">Просадка насоса ДНС</button>
               <button class="sm" data-s="Tu:12">Зимний режим (12 °C)</button>
               <button class="sm" data-s="mix:95">Пережим смесителя (1.9 бар)</button>
+              <button class="sm" onclick="S.aspo=58;render()">Забивка труб АСПО (58%)</button>
+              <button class="sm" onclick="$('oilPreset').value='orenburg';$('oilPreset').onchange({target:$('oilPreset')});$('scav').value=5;out()">Выброс H₂S (Оренбург)</button>
             </div>
           </div>
         </div>
@@ -824,7 +831,7 @@ canvas.trend { width: 100%; height: 110px; display: block; }
 
   <section id="view-tasks" class="view-section">
     <div class="card" style="margin-bottom:16px">
-      <h2>Каталог аттестационных сценариев (7 кейсов)</h2>
+      <h2>Каталог аттестационных сценариев (9 кейсов)</h2>
       <p>Выберите технологический кейс. На локализацию аварии даётся 4 минуты (240 с); для зачёта необходимо удержать нефть в 1-й группе ГОСТ Р 51858 в течение 40 секунд подряд на фоне каскадных возмущений.</p>
       <div style="margin:10px 0">
         <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
@@ -850,6 +857,7 @@ canvas.trend { width: 100%; height: 110px; display: block; }
             <tr><td>Концентрация хлористых солей, мг/дм³, не более</td><td><b>100</b></td><td>300</td><td>900</td></tr>
             <tr><td>Давление насыщенных паров (ДНП), кПа, не более</td><td><b>66,7</b></td><td>66,7</td><td>66,7</td></tr>
             <tr><td>Массовая доля мех. примесей, %, не более</td><td>0,05</td><td>0,05</td><td>0,05</td></tr>
+            <tr><td>Массовая доля сероводорода (H₂S), млн⁻¹ (ppm), не более</td><td><b>20 (Вид 1)</b></td><td>100 (Вид 2)</td><td>—</td></tr>
           </tbody>
         </table>
       </div>
@@ -861,6 +869,8 @@ canvas.trend { width: 100%; height: 110px; display: block; }
           <li style="margin-bottom:6px"><b>Кавитация центробежного насоса ДНС:</b> при снижении уровня буферной ёмкости ниже 12% и подаче насоса выше 50% происходит срыв подачи (−40% производительности) и вибрационный износ рабочего колеса.</li>
           <li style="margin-bottom:6px"><b>Электрический пробой в ЭЛОУ:</b> предельное напряжение поля <code>Vmax = 92 − 30·W0</code> снижается при высокой обводнённости на входе. Превышение порога вызывает короткое замыкание между электродами и отключение трансформатора на 20 секунд.</li>
           <li style="margin-bottom:6px"><b>Гидродинамика смесителя пресной воды:</b> малый перепад (&lt;0,5 бар) не обеспечивает контакта пресной воды с кристаллами солей, а чрезмерный (&gt;1,3 бар) диспергирует воду в микроэмульсию, не оседающую в электродегидраторе.</li>
+          <li style="margin-bottom:6px"><b>Кристаллизация парафинов (АСПО):</b> при падении температуры потока ниже точки помутнения (особенно на восточно-сибирской и арктической нефти) парафины откладываются на стенках труб, сужая сечение и снижая подачу насоса ДНС. Предотвращается дозировкой ингибитора АСПО и прогревом.</li>
+          <li style="margin-bottom:6px"><b>Нейтрализация сероводорода (H₂S):</b> высокосернистая нефть требует подачи поглотителя (нейтрализатора) H₂S и дегазации при повышенной температуре стабилизации для доведения до нормы Вида 1 (≤ 20 ppm).</li>
         </ul>
       </div>
     </div>
@@ -911,7 +921,7 @@ canvas.trend { width: 100%; height: 110px; display: block; }
             <h3 style="margin:8px 0 4px">Индивидуальный практикум</h3>
             <div class="price-tag">490 ₽ <span style="font-size:13px;font-weight:400;color:var(--mut)">/ семестр</span></div>
             <ul class="price-list">
-              <li>Доступ ко всем 7 аварийным сценариям и 3 профилям месторождений</li>
+              <li>Доступ ко всем 9 аварийным сценариям и 5 профилям месторождений (вкл. АСПО и H₂S)</li>
               <li>Тренажёр с интерактивным диагностом и подсказками</li>
               <li>Экономический симулятор OPEX и графики SCADA</li>
               <li>Генерация верифицированных протоколов для сдачи лабораторных работ</li>
@@ -969,9 +979,11 @@ const $ = id => document.getElementById(id);
 const cl = (x, a, b) => Math.max(a, Math.min(b, x));
 
 const OIL_PRESETS = {
-  west_sib: { name: 'Западная Сибирь', hMult: 1.0, qWell: 20, saltMult: 1.0, baseTu: 30 },
-  volga:    { name: 'Волго-Урал (Тяжёлая)', hMult: 1.32, qWell: 18, saltMult: 1.35, baseTu: 24 },
-  arctic:   { name: 'Арктический шельф', hMult: 1.45, qWell: 22, saltMult: 1.15, baseTu: 14 }
+  west_sib: { name: 'Западная Сибирь', hMult: 1.0, qWell: 20, saltMult: 1.0, baseTu: 30, baseH2S: 18, tParaffin: 18, scavDef: 5, inhibDef: 10 },
+  east_sib: { name: 'Восточная Сибирь (АСПО+)', hMult: 1.18, qWell: 19, saltMult: 1.1, baseTu: 20, baseH2S: 12, tParaffin: 32, scavDef: 0, inhibDef: 45 },
+  orenburg: { name: 'Оренбургское (H₂S+)', hMult: 1.15, qWell: 20, saltMult: 1.25, baseTu: 28, baseH2S: 380, tParaffin: 20, scavDef: 115, inhibDef: 15 },
+  volga:    { name: 'Волго-Урал (Тяжёлая)', hMult: 1.32, qWell: 18, saltMult: 1.35, baseTu: 24, baseH2S: 140, tParaffin: 24, scavDef: 38, inhibDef: 25 },
+  arctic:   { name: 'Арктический шельф', hMult: 1.45, qWell: 22, saltMult: 1.15, baseTu: 14, baseH2S: 25, tParaffin: 27, scavDef: 8, inhibDef: 40 }
 };
 let curPreset = 'west_sib';
 let seedMod = 1.0;
@@ -987,7 +999,9 @@ const C = [
   {id:'wash', t:'Промывочная пресная вода', min:0, max:10, v:5, u:' %', k:4},
   {id:'mix', t:'Перепад на смесителе', min:0, max:100, v:50, u:'', k:4, f:v=>(v/50).toFixed(1)+' бар'},
   {id:'volt', t:'Напряжение электродегидратора', min:0, max:100, v:60, u:' %', k:4},
-  {id:'Ts', t:'Температура стабилизации', min:50, max:120, v:75, u:' °C', k:4}
+  {id:'Ts', t:'Температура стабилизации', min:50, max:120, v:75, u:' °C', k:4},
+  {id:'inhib', t:'Ингибитор парафинов (АСПО)', min:0, max:100, v:15, u:' г/т', k:0},
+  {id:'scav', t:'Поглотитель сероводорода (H₂S)', min:0, max:200, v:10, u:' г/т', k:4}
 ];
 
 const K = [
@@ -1021,7 +1035,8 @@ $('chain').innerHTML = K.map((c, i) => `
 const S0 = () => ({
   L1:50, L2:40, eff:.766, wc3:.434, salt:72, dnp:47.8,
   mQ:127, mwc:30, mt:0, H:1, m:1, pT:.54, dopt:30, dbest:47,
-  trip:0, vmax:80, Ta:68, cav:false
+  trip:0, vmax:80, Ta:68, cav:false,
+  h2sIn:18, h2s:8.5, aspo:4.0, pRestr:1.0
 });
 let S = S0(), D = {}, paused = false;
 let pid1 = false, pid2 = false;
@@ -1095,6 +1110,8 @@ $('oilPreset').onchange = e => {
   const p = OIL_PRESETS[curPreset];
   $('presetBadge').textContent = p.name;
   $('Tu').value = p.baseTu;
+  if ($('scav')) $('scav').value = p.scavDef;
+  if ($('inhib')) $('inhib').value = p.inhibDef;
   out();
 };
 $('seedInput').oninput = e => {
@@ -1156,7 +1173,19 @@ function step() {
     $('o_pump').textContent = v.pump + ' %';
   }
 
-  const Qp0 = v.pump / 100 * 240;
+  // Модель отложения парафинов (АСПО) в трубопроводах
+  const tCrit = preset.tParaffin;
+  const inhibProt = Math.min(0.88, v.inhib / 75);
+  if (v.Tu < tCrit) {
+    const buildRate = 0.035 * (tCrit - v.Tu) * (1 - inhibProt);
+    S.aspo = cl(S.aspo + buildRate * 0.2, 0, 85);
+  } else {
+    const meltRate = 0.015 * (v.Tu - tCrit + 2) + (S.Ta > 70 ? 0.04 : 0);
+    S.aspo = cl(S.aspo - meltRate * 0.2, 0, 85);
+  }
+  S.pRestr = cl(1 - (S.aspo / 115), 0.25, 1.0);
+
+  const Qp0 = (v.pump / 100 * 240) * S.pRestr;
   const Qp = (S.L1 > 0 ? Qp0 : Math.min(Qp0, Q0)) * ((S.cav = S.L1 < 12 && v.pump > 50) ? .6 : 1);
   S.L1 = cl(S.L1 + (Q0 - Qp) * .01, 0, 100);
 
@@ -1218,15 +1247,24 @@ function step() {
     S.mwc = Math.max(0, v.wc * (v.wc >= 40 ? .85 : 1) + (Math.random() - .5) * 8);
   }
 
+  // Модель сероводорода (H2S): дегазация при стабилизации + нейтрализатор
+  S.h2sIn = preset.baseH2S * seedMod;
+  const degasEff = cl(0.18 + (v.Ts - 50) * 0.0045, 0.1, 0.52);
+  const h2sAfterStab = S.h2sIn * (1 - degasEff);
+  const h2sTarget = Math.max(0, h2sAfterStab - v.scav * 2.4);
+  S.h2s += (h2sTarget - S.h2s) * 0.12;
+
   const Qout = Q2 * (1 - S.wc3 / 100) * (1 - loss / 100);
 
-  const offSpec = S.wc3 > .5 || S.salt > 100 || S.dnp > 66.7;
+  const offSpec = S.wc3 > .5 || S.salt > 100 || S.dnp > 66.7 || S.h2s > 20;
   const rev = Qout * (offSpec ? 1450 : 2600);
-  const costReagent = Qp * 0.85 * (v.d / 1000) * 240;
+  const costReagent = Qp * 0.85 * ((v.d * 240 + v.inhib * 190 + v.scav * 260) / 1000);
   const costHeat = Q2 * (Math.max(0, S.Ta - 30) * 1.4 + Math.max(0, v.Ts - 45) * 1.1);
-  const costPower = (v.pump * 3.8) + (v.volt * 2.1) + (v.wash * Q2 * 0.9);
+  const aspoPowerPenalty = 1 + (S.aspo / 100) * 0.65;
+  const costPower = (v.pump * 3.8 * aspoPowerPenalty) + (v.volt * 2.1) + (v.wash * Q2 * 0.9);
   const opex = Math.round(costReagent + costHeat + costPower);
-  const lossCost = Math.round(Q2 * (loss / 100) * 2600 + (offSpec ? Qout * 650 : 0) + (S.L1 >= 100 ? 25000 : 0));
+  const h2sFine = S.h2s > 100 ? 18000 : (S.h2s > 20 ? 6500 : 0);
+  const lossCost = Math.round(Q2 * (loss / 100) * 2600 + (offSpec ? Qout * 650 : 0) + h2sFine + (S.L1 >= 100 ? 25000 : 0));
   const netFlow = Math.round(rev - opex - lossCost);
 
   D = { v, Q0, Qp, Q2, wc2, loss, wc0: v.wc, Qout, rev: Math.round(rev), opex, lossCost, netFlow };
@@ -1300,18 +1338,20 @@ function render() {
   const { v, Q0, Qp, Q2, wc2, loss, Qout, rev, opex, lossCost, netFlow } = D;
   const a = [], A = (b, t) => a.push([b, t]);
 
-  $('r0').innerHTML = `<div class="stat"><span>Приток продукции</span><b>${Math.round(Q0)} м³/ч</b></div>`;
+  const cAspo = S.aspo > 45 ? 'bad' : S.aspo > 20 ? 'warn' : '';
+  $('r0').innerHTML = `<div class="stat"><span>Приток продукции</span><b>${Math.round(Q0)} м³/ч</b></div><div class="stat"><span>Отложения парафинов (АСПО в трубах)</span><b>${S.aspo.toFixed(1)} %</b></div><div class="bar ${cAspo}"><i style="width:${S.aspo}%"></i></div>`;
   $('r1').innerHTML = `<div class="stat"><span>Показание дебита</span><b>${Math.round(S.mQ)} м³/ч</b></div><div class="stat"><span>Показание обводнённости</span><b>${Math.round(S.mwc)} %</b></div><div class="stat"><span>Обновлено</span><b>${Math.round(S.mt * .2)} с назад</b></div>`;
   const c1 = bc(S.L1, 0, 100, 15, 85), c2 = bc(S.L2, 0, 101, 10, 75);
   $('r2').innerHTML = `<div class="stat"><span>Уровень в ёмкости</span><b>${Math.round(S.L1)} %</b></div><div class="bar ${c1}"><i style="width:${S.L1}%"></i></div><div class="stat"><span>Подача на УПСВ</span><b>${Math.round(Qp)} м³/ч</b></div>`;
   $('r3').innerHTML = `<div class="stat"><span>Уровень воды</span><b>${Math.round(S.L2)} %</b></div><div class="bar ${c2}"><i style="width:${S.L2}%"></i></div><div class="stat"><span>Обводнённость после сброса</span><b>${f1(wc2)} %</b></div><div class="stat"><span>Устойчивость эмульсии (H=${S.H.toFixed(2)})</span><b>${S.H < 1.15 ? 'низкая' : S.H < 1.6 ? 'средняя' : 'высокая'}</b></div>`;
-  $('r4').innerHTML = `<div class="stat"><span>Печь: фактическая температура</span><b>${Math.round(S.Ta)} °C (уставка ${v.T} °C)</b></div><div class="stat"><span>Эффективность смешения с промывкой</span><b>${Math.round(S.m * 100)} %</b></div><div class="stat"><span>Давление в аппарате</span><b>${S.pT.toFixed(2)} бар</b></div><div class="stat"><span>Электродегидратор</span><b>${S.trip > 0 ? 'ПРОБОЙ ПОЛЯ' : 'допустимо до ' + Math.round(S.vmax) + ' %'}</b></div><div class="stat"><span>Потери лёгких фракций</span><b>${loss.toFixed(2)} %</b></div>`;
+  $('r4').innerHTML = `<div class="stat"><span>Печь: фактическая температура</span><b>${Math.round(S.Ta)} °C (уставка ${v.T} °C)</b></div><div class="stat"><span>Эффективность смешения с промывкой</span><b>${Math.round(S.m * 100)} %</b></div><div class="stat"><span>Давление в аппарате</span><b>${S.pT.toFixed(2)} бар</b></div><div class="stat"><span>Электродегидратор</span><b>${S.trip > 0 ? 'ПРОБОЙ ПОЛЯ' : 'допустимо до ' + Math.round(S.vmax) + ' %'}</b></div><div class="stat"><span>Потери лёгких фракций</span><b>${loss.toFixed(2)} %</b></div><div class="stat"><span>Сероводород (вход → выход СИКН)</span><b>${Math.round(S.h2sIn)} → ${S.h2s.toFixed(1)} ppm</b></div>`;
 
-  const w = S.wc3, s = S.salt, p = S.dnp, qc = (x, l) => x > l ? 'bad' : x > l * .9 ? 'warn' : 'ok';
+  const w = S.wc3, s = S.salt, p = S.dnp, h2s = S.h2s, qc = (x, l) => x > l ? 'bad' : x > l * .9 ? 'warn' : 'ok';
   $('q').innerHTML = [
     ['Вода, %', w.toFixed(2), qc(w, .5)],
     ['Соли, мг/л', Math.round(s), qc(s, 100)],
-    ['ДНП, кПа', f1(p), qc(p, 66.7)]
+    ['ДНП, кПа', f1(p), qc(p, 66.7)],
+    ['H₂S, ppm', f1(h2s), qc(h2s, 20)]
   ].map(x => `<div class="rd ${x[2]}"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
 
   $('qout').textContent = f1(Qout) + ' м³/ч';
@@ -1324,6 +1364,7 @@ function render() {
   if (w > .5) bad.push('вода');
   if (s > 100) bad.push('соли');
   if (p > 66.7) bad.push('ДНП');
+  if (h2s > 20) bad.push('H₂S');
   $('verdict').textContent = bad.length ? 'БРАК (некондиция): ' + bad.join(', ') : 'Кондиция: Нефть соответствует 1-й группе ГОСТ';
   $('verdict').style.color = bad.length ? 'var(--bad)' : 'var(--ok)';
   QB = bad.length;
@@ -1359,9 +1400,13 @@ function render() {
   if (v.mix < 25 && v.wash > 0) A(0, 'УКПН: слабый перепад на смесителе, неэффективная отмывка солей');
   if (v.d > S.dbest + 15) A(0, 'Передозировка деэмульгатора: оптимум около ' + Math.round(S.dbest) + ' г/т');
   if (S.H >= 1.6) A(0, 'УПСВ: высокая устойчивость эмульсии, затруднено расслоение');
+  if (S.aspo > 45) A(1, 'Трубопровод: критическая забивка парафинами (АСПО > 45%), падение прокачки');
+  else if (S.aspo > 20) A(0, 'Трубопровод: рост отложений парафинов (АСПО), добавьте ингибитор');
   if (w > .5) A(1, 'СИКН: обводнённость товарной нефти выше 0,50 %');
   if (s > 100) A(1, 'СИКН: хлористые соли выше 100 мг/л');
   if (p > 66.7) A(1, 'СИКН: давление насыщенных паров выше 66,7 кПа');
+  if (h2s > 100) A(1, 'СИКН: аварийный прорыв сероводорода H₂S (>100 ppm)!');
+  else if (h2s > 20) A(1, 'СИКН: сероводород H₂S выше нормы 1 вида (>20 ppm)');
 
   a.sort((x, y) => y[0] - x[0]);
   LA = a;
@@ -1476,7 +1521,9 @@ const TS = [
   {n:'Подключили 4 скважины', s:{n:10, wc:40}, txt:'Приток вырос до 200 м³/ч. Не допустите переполнения ДНС и держите качество.'},
   {n:'Пробой электродегидратора', s:{wc:40, d:25}, txt:'Реагента мало, вода идёт на УКПН. Подберите напряжение и нагрев без пробоя.'},
   {n:'Погасла горелка', s:{}, txt:'Печь теряет нагрев. Верните температуру и удержите качество.'},
-  {n:'Кавитация насоса', s:{n:4, pump:90}, txt:'Насос ДНС выкачивает больше притока, уровень падает. Не допустите кавитации.'}
+  {n:'Кавитация насоса', s:{n:4, pump:90}, txt:'Насос ДНС выкачивает больше притока, уровень падает. Не допустите кавитации.'},
+  {n:'Прорыв сероводорода (H₂S)', s:{scav:5, Ts:60}, preset:'orenburg', txt:'Пришла высокосернистая нефть (Оренбург). Снизьте H₂S до нормы Вида 1 (≤ 20 ppm) поглотителем и стабилизацией.'},
+  {n:'Парафинизация труб (АСПО)', s:{Tu:12, inhib:0}, preset:'east_sib', aspoInit:48, txt:'Восточно-Сибирская нефть остыла, трубы забиты парафином на 48%. Подайте ингибитор АСПО и удержите баланс ДНС.'}
 ];
 const LIM = 240, HOLD = 200;
 const EV = [
@@ -1486,7 +1533,9 @@ const EV = [
   [{t:70, s:{wc:45}, m:'Обводнённость выросла до 45 %'}],
   [{t:60, s:{wc:50, d:25}, m:'Просел дозатор реагента, выросла обводнённость'}],
   [{t:40, s:{T:50}, m:'Погасла горелка печи: температура падает'}, {t:100, s:{wc:42}, m:'Обводнённость выросла до 42 %'}],
-  [{t:60, s:{n:6}, m:'Приток вырос: подключили скважины'}]
+  [{t:60, s:{n:6}, m:'Приток вырос: подключили скважины'}],
+  [{t:55, s:{wc:45}, m:'Обводнённость выросла до 45 %'}, {t:110, s:{scav:25}, m:'Засорился фильтр дозатора поглотителя H₂S (упал до 25 г/т)'}],
+  [{t:60, s:{n:8}, m:'Подключили 2 скважины: нагрузка на забитый трубопровод выросла'}]
 ];
 
 function bestGet() { try { return JSON.parse(localStorage.getItem('nt_best') || '{}'); } catch(e) { return {}; } }
@@ -1525,6 +1574,8 @@ function diag() {
   if (S.wc3 > .5 && wc2 > 12 && Math.abs(v.d - S.dbest) > 6) return {k:'W2', t:['На УПСВ сбрасывается мало воды: после отстоя ' + wc2.toFixed(1) + ' %.', 'Эмульсия ' + (S.H < 1.15 ? 'неустойчивая' : 'устойчивая') + ', скорректируйте дозировку деэмульгатора без перебора.', 'Установите дозировку деэмульгатора около ' + r(S.dbest) + ' г/т.']};
   if (S.wc3 > .5) return {k:'W3', t:['Вода в товарной нефти выше нормы (' + S.wc3.toFixed(2) + ' %).', 'Увеличьте температуру в печи нагрева или проверьте напряжение ЭЛОУ.', 'Поставьте температуру нагрева около ' + Math.min(90, Math.ceil(30 + 12 * Math.log(wc2 * (S.trip > 0 ? 4.48 : Math.exp(-(v.volt - 60) / 40)) / Math.max(.05, .45 - v.wash * .01)))) + ' °C.']};
   if (S.salt > 100) return {k:'S', t:['Соли выше нормы (' + r(S.salt) + ' мг/л).', 'Для обессоливания нужна подача пресной воды и оптимальный перепад на смесителе.', 'Поставьте промывку около 6 %, перепад на смесителе около 1,0 бар (50 ед.).']};
+  if (S.aspo > 25) return {k:'ASPO', t:['Трубы забиты парафинами (АСПО ' + S.aspo.toFixed(0) + ' %), подача насоса ДНС ограничена.', 'При низкой температуре потока необходима подача ингибитора парафиноотложений.', 'Установите дозировку ингибитора АСПО на блоке скважин около 65–80 г/т.']};
+  if (S.h2s > 20) return {k:'H2S', t:['Сероводород в товарной нефти выше нормы (' + S.h2s.toFixed(1) + ' ppm при норме ≤ 20 ppm).', 'Увеличьте подачу поглотителя H₂S на УКПН и поддерживайте температуру стабилизации.', 'Поставьте поглотитель H₂S около ' + Math.min(200, Math.ceil((S.h2sIn * 0.72 - 15) / 2.4)) + ' г/т и температуру стабилизации 75–80 °C.']};
   if (S.dnp > 66.7) return {k:'P', t:['ДНП выше нормы (' + S.dnp.toFixed(1) + ' кПа).', 'Повысьте температуру в колонне стабилизации.', 'Поставьте температуру стабилизации около 70–75 °C.']};
   return {k:'OK', t:['Качество в норме ГОСТ. Удерживайте режим.', 'Контролируйте уровни в ДНС и УПСВ.', 'Ожидайте возможных внешних возмущений по сценарию.']};
 }
@@ -1540,8 +1591,17 @@ function hint() {
 }
 
 function tkStart(i) {
+  if (TS[i].preset) {
+    curPreset = TS[i].preset;
+    $('oilPreset').value = curPreset;
+    $('presetBadge').textContent = OIL_PRESETS[curPreset].name;
+  }
   C.forEach(x => $(x.id).value = x.v);
+  const p = OIL_PRESETS[curPreset];
+  $('scav').value = p.scavDef;
+  $('inhib').value = p.inhibDef;
   S = S0();
+  if (TS[i].aspoInit) S.aspo = TS[i].aspoInit;
   Object.entries(TS[i].s).forEach(([k, v]) => $(k).value = v);
   out();
   TK = { i, t:0, ok:0, off:0, crit:0, log:{}, done:0, hints:0, hl:0, hk:'', msgH:'', netSum:0 };
