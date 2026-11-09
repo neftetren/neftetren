@@ -646,7 +646,6 @@ canvas.trend { width: 100%; height: 110px; display: block; }
         <div class="card" id="schema">
           <h2>
             <span class="title-left"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg>Мнемосхема ЦППН</span>
-            <span id="presetBadge" style="font-size:11px;color:var(--mut);font-weight:500">Западная Сибирь</span>
           </h2>
           <svg viewBox="0 0 360 530" role="img" aria-label="Технологическая схема подготовки нефти">
             <defs>
@@ -1108,7 +1107,7 @@ document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => switchTab(b
 $('oilPreset').onchange = e => {
   curPreset = e.target.value;
   const p = OIL_PRESETS[curPreset];
-  $('presetBadge').textContent = p.name;
+  if ($('presetBadge')) $('presetBadge').textContent = p.name;
   $('Tu').value = p.baseTu;
   if ($('scav')) $('scav').value = p.scavDef;
   if ($('inhib')) $('inhib').value = p.inhibDef;
@@ -1594,7 +1593,7 @@ function tkStart(i) {
   if (TS[i].preset) {
     curPreset = TS[i].preset;
     $('oilPreset').value = curPreset;
-    $('presetBadge').textContent = OIL_PRESETS[curPreset].name;
+    if ($('presetBadge')) $('presetBadge').textContent = OIL_PRESETS[curPreset].name;
   }
   C.forEach(x => $(x.id).value = x.v);
   const p = OIL_PRESETS[curPreset];
